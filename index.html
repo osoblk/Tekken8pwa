@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tekken 8 Training Tool</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(() => console.log("Service Worker Registered"));
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('background.png') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 95%;
+            margin: 20px auto;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ff4500;
+        }
+        select, input, button {
+            width: 90%;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #ff4500;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #ff5722;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #555;
+        }
+        th {
+            background: rgba(255, 69, 0, 0.8);
+        }
+        td {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tekken 8 Training Tool</h1>
+        <h2>Master Punishment and Frame Data</h2>
+        <select id="character-select">
+            <option value="lili">Lili</option>
+            <option value="kazuya">Kazuya</option>
+            <option value="jin">Jin</option>
+        </select>
+        <table>
+            <thead>
+                <tr>
+                    <th>Move</th>
+                    <th>Startup</th>
+                    <th>Block</th>
+                    <th>Punishment</th>
+                </tr>
+            </thead>
+            <tbody id="frame-data"></tbody>
+        </table>
+        <canvas id="chart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const frameData = {
+            lili: [{ move: "d/f+2", startup: 15, block: -12, punishment: "1,2" }],
+            kazuya: [{ move: "f+4", startup: 17, block: -10, punishment: "1,1,2" }],
+            jin: []
+        };
+
+        const select = document.getElementById("character-select");
+        const tbody = document.getElementById("frame-data");
+        const ctx = document.getElementById("chart").getContext("2d");
+
+        let chartInstance = null;
+
+        function renderTable(character) {
+            tbody.innerHTML = "";
+            const moves = frameData[character] || [];
+            moves.forEach(({ move, startup, block, punishment }) => {
+                tbody.innerHTML += `<tr><td>${move}</td><td>${startup}</td><td>${block}</td><td>${punishment}</td></tr>`;
+            });
+            renderChart(moves);
+        }
+
+        function renderChart(moves) {
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: moves.map(m => m.move),
+                    datasets: [{ label: "Startup Frames", data: moves.map(m => m.startup), backgroundColor: "orange" }]
+                }
+            });
+        }
+
+        select.addEventListener("change", () => renderTable(select.value));
+        renderTable(select.value);
+    </script>
+</body>
+</html>
