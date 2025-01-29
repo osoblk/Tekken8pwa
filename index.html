@@ -15,8 +15,7 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background: url('background.png') no-repeat center center fixed;
-            background-size: cover;
+            background: #000;
             color: #fff;
             margin: 0;
             padding: 0;
@@ -47,88 +46,108 @@
         button:hover {
             background: #ff5722;
         }
-        table {
-            width: 100%;
+        .matchup-box {
+            text-align: left;
+            background: rgba(255, 69, 0, 0.2);
+            padding: 15px;
             margin-top: 20px;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #555;
-        }
-        th {
-            background: rgba(255, 69, 0, 0.8);
-        }
-        td {
-            background: rgba(0, 0, 0, 0.7);
-        }
-        canvas {
-            width: 100%;
-            height: auto;
-            margin-top: 20px;
-            border-radius: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Tekken 8 Training Tool</h1>
-        <h2>Master Punishment and Frame Data</h2>
+        <h2>Matchup Move Recommendations</h2>
+
+        <label for="character-select">Your Character:</label>
         <select id="character-select">
             <option value="lili">Lili</option>
             <option value="kazuya">Kazuya</option>
             <option value="jin">Jin</option>
         </select>
-        <table>
-            <thead>
-                <tr>
-                    <th>Move</th>
-                    <th>Startup</th>
-                    <th>Block</th>
-                    <th>Punishment</th>
-                </tr>
-            </thead>
-            <tbody id="frame-data"></tbody>
-        </table>
-        <canvas id="chart"></canvas>
+
+        <label for="opponent-select">Opponent Character:</label>
+        <select id="opponent-select">
+            <option value="kazuya">Kazuya</option>
+            <option value="jin">Jin</option>
+            <option value="lili">Lili</option>
+        </select>
+
+        <button onclick="loadMatchup()">Show Recommendations</button>
+
+        <div class="matchup-box" id="matchup-data">
+            <h3>Matchup Guide</h3>
+            <p><strong>Best Punishers:</strong> <span id="punishers"></span></p>
+            <p><strong>Best Pokes:</strong> <span id="pokes"></span></p>
+            <p><strong>Sidestep Strategy:</strong> <span id="sidestep"></span></p>
+            <p><strong>Notes:</strong></p>
+            <textarea id="matchup-notes" rows="4" style="width: 100%;"></textarea>
+            <button onclick="saveMatchupNotes()">Save Notes</button>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const frameData = {
-            lili: [{ move: "d/f+2", startup: 15, block: -12, punishment: "1,2" }],
-            kazuya: [{ move: "f+4", startup: 17, block: -10, punishment: "1,1,2" }],
-            jin: []
+        const matchupData = JSON.parse(localStorage.getItem("matchupData")) || {
+            lili: {
+                kazuya: {
+                    punishers: "1,2 (i10), df+3 (i15), hopkick (i16)",
+                    pokes: "df+1, d+3, b+4",
+                    sidestep: "Sidestep **left** to avoid EWGF & Hell Sweep",
+                    notes: ""
+                },
+                jin: {
+                    punishers: "df+3 (i15), df+1+2 (i13), hopkick (i16)",
+                    pokes: "db+3, df+1, ws+2",
+                    sidestep: "Sidestep **right** to avoid 2,1 and f+4",
+                    notes: ""
+                }
+            },
+            kazuya: {
+                lili: {
+                    punishers: "1,1,2 (i10), df+2 (i15), EWGF (i13)",
+                    pokes: "df+4, 1, f+4",
+                    sidestep: "Sidestep **left** to avoid Lili’s df+3 and d/b+4",
+                    notes: ""
+                }
+            }
         };
 
-        const select = document.getElementById("character-select");
-        const tbody = document.getElementById("frame-data");
-        const ctx = document.getElementById("chart").getContext("2d");
+        function loadMatchup() {
+            const myChar = document.getElementById("character-select").value;
+            const opponent = document.getElementById("opponent-select").value;
 
-        let chartInstance = null;
-
-        function renderTable(character) {
-            tbody.innerHTML = "";
-            const moves = frameData[character] || [];
-            moves.forEach(({ move, startup, block, punishment }) => {
-                tbody.innerHTML += `<tr><td>${move}</td><td>${startup}</td><td>${block}</td><td>${punishment}</td></tr>`;
-            });
-            renderChart(moves);
+            if (matchupData[myChar] && matchupData[myChar][opponent]) {
+                document.getElementById("punishers").textContent = matchupData[myChar][opponent].punishers;
+                document.getElementById("pokes").textContent = matchupData[myChar][opponent].pokes;
+                document.getElementById("sidestep").textContent = matchupData[myChar][opponent].sidestep;
+                document.getElementById("matchup-notes").value = matchupData[myChar][opponent].notes;
+            } else {
+                document.getElementById("punishers").textContent = "No data available.";
+                document.getElementById("pokes").textContent = "No data available.";
+                document.getElementById("sidestep").textContent = "No data available.";
+                document.getElementById("matchup-notes").value = "";
+            }
         }
 
-        function renderChart(moves) {
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: moves.map(m => m.move),
-                    datasets: [{ label: "Startup Frames", data: moves.map(m => m.startup), backgroundColor: "orange" }]
-                }
-            });
+        function saveMatchupNotes() {
+            const myChar = document.getElementById("character-select").value;
+            const opponent = document.getElementById("opponent-select").value;
+            const notes = document.getElementById("matchup-notes").value;
+
+            if (!matchupData[myChar]) {
+                matchupData[myChar] = {};
+            }
+            if (!matchupData[myChar][opponent]) {
+                matchupData[myChar][opponent] = { punishers: "", pokes: "", sidestep: "", notes: "" };
+            }
+
+            matchupData[myChar][opponent].notes = notes;
+            localStorage.setItem("matchupData", JSON.stringify(matchupData));
+            alert("Matchup notes saved!");
         }
 
-        select.addEventListener("change", () => renderTable(select.value));
-        renderTable(select.value);
+        loadMatchup();
     </script>
 </body>
 </html>
